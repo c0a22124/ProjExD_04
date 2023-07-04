@@ -2,8 +2,10 @@ import math
 import random
 import sys
 import time
+from typing import Any
 
 import pygame as pg
+from pygame.sprite import AbstractGroup
 
 
 WIDTH = 1600  # ゲームウィンドウの幅
@@ -289,6 +291,34 @@ class Score:
         self.image = self.font.render(f"Score: {self.score}", 0, self.color)
         screen.blit(self.image, self.rect)
 
+
+class Shield(pg.sprite.Sprite):
+    def __init__(self, bird, life):
+        super().__init__()
+        self.image = pg.Surface((20, bird.rect.height * 2))
+        self.image.fill((0, 0, 0))
+        self.vx, self.vy = bird.get_direction()
+        self.birdd = bird.get_direction()
+        if self.birdd == (+1,0) or self.birdd == (-1,0):
+            print(self.birdd)
+            self.rect = self.image.get_rect()
+            self.rect.centery = bird.rect.centery+bird.rect.height*self.vy
+            self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
+        if self.birdd == (0,+1) or self.birdd == (0,-1):
+            print(self.birdd)
+            self.image = pg.transform.rotozoom(self.image, 90, 1)
+            self.rect = self.image.get_rect()
+            self.rect.centery = bird.rect.centery+bird.rect.height*self.vy
+            self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
+
+        self.life = life
+
+    def update(self):
+        self.life -= 1
+        if self.life < 0:
+            self.kill()
+
+
 class NeoGravity(pg.sprite.Sprite):
 
     def __init__(self,life):
@@ -305,6 +335,7 @@ class NeoGravity(pg.sprite.Sprite):
         if self.life <0:
             self.kill()
 
+
 def main():
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -316,8 +347,12 @@ def main():
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
+
+    shield = pg.sprite.Group()
+
     ngravities = pg.sprite.Group() #ngraのグループを追加
     gravity = pg.sprite.Group()  # 追加機能５
+
 
     tmr = 0
     clock = pg.time.Clock()
@@ -328,6 +363,12 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
+
+            if event.type == pg.KEYDOWN and event.key == pg.K_CAPSLOCK and score.score >= 50 and len(shield) == 0:
+                score.score_up(-50)
+                shield1 = Shield(bird, 400)
+                shield.add(shield1)
+
 
 
             if event.type == pg.KEYDOWN and event.key == pg.K_RETURN and score.score >= 200:
@@ -349,6 +390,7 @@ def main():
                     score.score -= 100
             
 
+
         screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
@@ -367,6 +409,9 @@ def main():
         for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.score_up(1)  # 1点アップ
+
+        for bomb in pg.sprite.groupcollide(bombs, shield, True, False).keys():
+            exps.add(Explosion(bomb, 50))  # 爆発エフェクト
 
 
         if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
@@ -415,9 +460,14 @@ def main():
         ngravities.update()
         ngravities.draw(screen)
         score.update(screen)
+
+        shield.update()
+        shield.draw(screen)
+
         gravity.draw(screen)  # 追加機能５
         gravity.update()  # 追加機能５
         
+
         pg.display.update()
         tmr += 1
         clock.tick(50)
