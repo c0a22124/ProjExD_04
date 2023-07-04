@@ -274,7 +274,7 @@ def main():
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
-    gravities = pg.sprite.Group()
+    ngravities = pg.sprite.Group() #ngraのグループを追加
 
     tmr = 0
     clock = pg.time.Clock()
@@ -287,7 +287,7 @@ def main():
                 beams.add(Beam(bird))
 
             if event.type == pg.KEYDOWN and event.key == pg.K_RETURN and score.score >= 200:
-                gravities.add(NeoGravity(400))
+                ngravities.add(NeoGravity(400)) #400フレームで生成
                 score.score_up(-200)
 
         screen.blit(bg_img, [0, 0])
@@ -316,11 +316,11 @@ def main():
             time.sleep(2)
             return
         
-        for bomb in pg.sprite.groupcollide(bombs, gravities, True, False).keys():
+        for bomb in pg.sprite.groupcollide(bombs, ngravities, True, False).keys():
             exps.add(Explosion(bomb,50))
             bird.change_img(6, screen)
 
-        for emy in pg.sprite.groupcollide(emys, gravities, True, False).keys():
+        for emy in pg.sprite.groupcollide(emys, ngravities, True, False).keys():
             exps.add(Explosion(emy,100))
             bird.change_img(6, screen)
 
@@ -334,8 +334,8 @@ def main():
         bombs.draw(screen)
         exps.update()
         exps.draw(screen)
-        gravities.update()
-        gravities.draw(screen)
+        ngravities.update()
+        ngravities.draw(screen)
         score.update(screen)
         pg.display.update()
         tmr += 1
