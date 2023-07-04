@@ -122,6 +122,10 @@ class Bird(pg.sprite.Sprite):
     def get_direction(self) -> tuple[int, int]:
         return self.dire
     
+
+    
+
+
 #  追加機能５
 class Gravity(pg.sprite.Sprite):
     """
@@ -142,6 +146,7 @@ class Gravity(pg.sprite.Sprite):
         if self.life < 0:
             self.kill()
 #  追加機能５
+
 
 class Bomb(pg.sprite.Sprite):
     """
@@ -358,11 +363,19 @@ def main():
     clock = pg.time.Clock()
     while True:
         key_lst = pg.key.get_pressed()
+    
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
+
+            if key_lst[pg.K_LSHIFT]:
+                bird.speed = 20
+            else:
+                bird.speed = 10
+                
+
 
             if event.type == pg.KEYDOWN and event.key == pg.K_CAPSLOCK and score.score >= 50 and len(shield) == 0:
                 score.score_up(-50)
@@ -389,6 +402,7 @@ def main():
                     bird.change_state("hyper",500)
                     score.score -= 100
             
+
 
 
         screen.blit(bg_img, [0, 0])
@@ -421,6 +435,9 @@ def main():
             time.sleep(2)
             return
         
+
+        
+
         for bomb in pg.sprite.groupcollide(bombs, ngravities, True, False).keys():
             exps.add(Explosion(bomb,50))
             bird.change_img(6, screen)
@@ -446,6 +463,7 @@ def main():
                 pg.display.update()
                 time.sleep(2)
                 return
+
 
 
         bird.update(key_lst, screen)
