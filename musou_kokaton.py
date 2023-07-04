@@ -257,6 +257,7 @@ class NeoGravity(pg.sprite.Sprite):
         pg.draw.rect(self.image, color, (0,0,WIDTH,HEIGHT))
         self.image.set_alpha(128)
         self.rect = self.image.get_rect()
+
         self.life = life
     def update(self):
         self.life -=1
