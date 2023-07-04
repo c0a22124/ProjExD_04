@@ -73,6 +73,8 @@ class Bird(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = xy
         self.speed = 10
+        self.state = "normal"
+        self.hyper_life = -1
 
     def change_img(self, num: int, screen: pg.Surface):
         """
@@ -82,6 +84,14 @@ class Bird(pg.sprite.Sprite):
         """
         self.image = pg.transform.rotozoom(pg.image.load(f"ex04/fig/{num}.png"), 0, 2.0)
         screen.blit(self.image, self.rect)
+    def change_state(self, state: str, hyper_life: int):
+        """
+        hyperモードとノーマルモードを切り替える
+        """
+        self.state = state
+        self.hyper_life = hyper_life
+
+
 
     def update(self, key_lst: list[bool], screen: pg.Surface):
         """
@@ -102,11 +112,36 @@ class Bird(pg.sprite.Sprite):
         if not (sum_mv[0] == 0 and sum_mv[1] == 0):
             self.dire = tuple(sum_mv)
             self.image = self.imgs[self.dire]
+        if self.state == "hyper":
+            self.hyper_life -= 1
+            self.image = pg.transform.laplacian(self.image)
+        if self.hyper_life < 0:
+            self.change_state("normal",-1)
         screen.blit(self.image, self.rect)
     
     def get_direction(self) -> tuple[int, int]:
         return self.dire
     
+#  追加機能５
+class Gravity(pg.sprite.Sprite):
+    """
+    重力球のクラス
+    """
+    def __init__(self, bird:Bird, rad:int, life:int):
+        super().__init__()
+        self.image = pg.Surface((2*rad, 2*rad))
+        pg.draw.circle(self.image, (10,10,10), (rad, rad), rad)
+        self.image.set_alpha(100)
+        self.image.set_colorkey((0, 0, 0))
+        self.rect = self.image.get_rect()
+        self.rect.center = bird.rect.center
+        self.life = life
+
+    def update(self):
+        self.life -= 1
+        if self.life < 0:
+            self.kill()
+#  追加機能５
 
 class Bomb(pg.sprite.Sprite):
     """
@@ -245,10 +280,17 @@ class Score:
 
     def score_up(self, add):
         self.score += add
+# 追加機能５   
+    def score_down(self, s_down):
+        self.score -= s_down
 
+    def score_check(self):
+        return self.score
+# 追加機能５
     def update(self, screen: pg.Surface):
         self.image = self.font.render(f"Score: {self.score}", 0, self.color)
         screen.blit(self.image, self.rect)
+
 
 class Shield(pg.sprite.Sprite):
     def __init__(self, bird, life):
@@ -277,6 +319,23 @@ class Shield(pg.sprite.Sprite):
             self.kill()
 
 
+class NeoGravity(pg.sprite.Sprite):
+
+    def __init__(self,life):
+        super().__init__()
+        self.image = pg.Surface((WIDTH,HEIGHT))
+        color = (0,0,0)
+        pg.draw.rect(self.image, color, (0,0,WIDTH,HEIGHT))
+        self.image.set_alpha(128)
+        self.rect = self.image.get_rect()
+
+        self.life = life
+    def update(self):
+        self.life -=1
+        if self.life <0:
+            self.kill()
+
+
 def main():
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -288,7 +347,12 @@ def main():
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
+
     shield = pg.sprite.Group()
+
+    ngravities = pg.sprite.Group() #ngraのグループを追加
+    gravity = pg.sprite.Group()  # 追加機能５
+
 
     tmr = 0
     clock = pg.time.Clock()
@@ -299,10 +363,33 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
+
             if event.type == pg.KEYDOWN and event.key == pg.K_CAPSLOCK and score.score >= 50 and len(shield) == 0:
                 score.score_up(-50)
                 shield1 = Shield(bird, 400)
                 shield.add(shield1)
+
+
+
+            if event.type == pg.KEYDOWN and event.key == pg.K_RETURN and score.score >= 200:
+                ngravities.add(NeoGravity(400)) #400フレームで生成
+                score.score_up(-200)
+
+
+# 追加機能５
+            if event.type == pg.KEYDOWN and event.key == pg.K_TAB:
+                score_now = score.score_check()
+                if score_now >= 50:
+                    gravity.add(Gravity(bird,200,500))
+                    score.score_down(50)
+# 追加機能５
+
+            if event.type == pg.KEYDOWN and event.key == pg.K_RSHIFT:
+                if score.score >= 100:
+                    bird.change_state("hyper",500)
+                    score.score -= 100
+            
+
 
         screen.blit(bg_img, [0, 0])
 
@@ -326,12 +413,40 @@ def main():
         for bomb in pg.sprite.groupcollide(bombs, shield, True, False).keys():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
 
+
         if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
             bird.change_img(8, screen) # こうかとん悲しみエフェクト
             score.update(screen)
             pg.display.update()
             time.sleep(2)
             return
+        
+        for bomb in pg.sprite.groupcollide(bombs, ngravities, True, False).keys():
+            exps.add(Explosion(bomb,50))
+            bird.change_img(6, screen)
+
+        for emy in pg.sprite.groupcollide(emys, ngravities, True, False).keys():
+            exps.add(Explosion(emy,100))
+            bird.change_img(6, screen)
+
+
+# 追加機能５
+        for bomb in pg.sprite.groupcollide(bombs, gravity, True,False).keys():
+            exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+            score.score_up(1)  # 1点アップ
+# 追加機能５
+
+        for bomb in pg.sprite.spritecollide(bird, bombs, True):
+            if bird.state == "hyper":
+                exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+                score.score_up(1)  # 1点アップ
+            if bird.state == "normal":
+                bird.change_img(8, screen) # こうかとん悲しみエフェクト
+                score.update(screen)
+                pg.display.update()
+                time.sleep(2)
+                return
+
 
         bird.update(key_lst, screen)
         beams.update()
@@ -342,9 +457,17 @@ def main():
         bombs.draw(screen)
         exps.update()
         exps.draw(screen)
+        ngravities.update()
+        ngravities.draw(screen)
         score.update(screen)
+
         shield.update()
         shield.draw(screen)
+
+        gravity.draw(screen)  # 追加機能５
+        gravity.update()  # 追加機能５
+        
+
         pg.display.update()
         tmr += 1
         clock.tick(50)
