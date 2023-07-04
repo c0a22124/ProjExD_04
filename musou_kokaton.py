@@ -264,8 +264,8 @@ class Shield(pg.sprite.Sprite):
             self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
         if self.birdd == (0,+1) or self.birdd == (0,-1):
             print(self.birdd)
-            self.rect = self.image.get_rect()
             self.image = pg.transform.rotozoom(self.image, 90, 1)
+            self.rect = self.image.get_rect()
             self.rect.centery = bird.rect.centery+bird.rect.height*self.vy
             self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
 
